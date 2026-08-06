@@ -1,6 +1,6 @@
 {
     "name": "dskripchenko/laravel-admin-pulse",
-    "description": "Лёгкая телеметрия (request/query/job/exception) для dskripchenko/laravel-admin (без laravel/pulse).",
+    "description": "Lightweight telemetry (request, query, job, exception) for dskripchenko/laravel-admin — no dependency on laravel/pulse.",
     "type": "library",
     "keywords": [
         "laravel",
