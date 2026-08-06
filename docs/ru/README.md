@@ -1,11 +1,11 @@
 # dskripchenko/laravel-admin-pulse
 
-> 🌐 [English](README.md) · **Русский** · [Deutsch](README.de.md) · [中文](README.zh.md)
+> 🌐 [English](../../README.md) · **Русский** · [Deutsch](../de/README.md) · [中文](../zh/README.md)
 
 
 Лёгкая телеметрия для `dskripchenko/laravel-admin`: response-times, slow-queries, jobs throughput, top-exceptions. Своя реализация без `laravel/pulse`.
 
-Полная спецификация: [../../docs/sister-packs/pulse.md](../../docs/sister-packs/pulse.md).
+Полная спецификация: [laravel-admin/docs/sister-packs/pulse.md](https://github.com/dskripchenko/laravel-admin/blob/main/docs/sister-packs/pulse.md).
 
 ## Статус
 
