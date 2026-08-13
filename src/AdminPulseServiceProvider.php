@@ -46,8 +46,7 @@ final class AdminPulseServiceProvider extends ServiceProvider
     }
 
     /**
-     * Регистрируем middleware-alias 'pulse' для использования
-     * в host-роутах:
+     * We register the 'pulse' middleware alias for use in the host's routes:
      *
      *     Route::middleware('pulse')->group(...);
      */

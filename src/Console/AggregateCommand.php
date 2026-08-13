@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 /**
  * `php artisan admin:pulse:aggregate [--minutes=5]`
  *
- * Запускается в scheduler everyFiveMinutes:
+ * Run it from the scheduler every five minutes:
  *   $schedule->command('admin:pulse:aggregate')->everyFiveMinutes();
  */
 final class AggregateCommand extends Command

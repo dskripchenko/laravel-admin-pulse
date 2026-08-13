@@ -13,7 +13,7 @@ use Dskripchenko\LaravelAdminPulse\Models\PulseSample;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * View-only Resource для admin_pulse_samples.
+ * A view-only resource over admin_pulse_samples.
  *
  * Permissions: admin.system.pulse.view.
  */

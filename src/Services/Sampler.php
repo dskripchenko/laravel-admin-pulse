@@ -8,19 +8,20 @@ use Dskripchenko\LaravelAdminPulse\Models\PulseSample;
 use Illuminate\Support\Carbon;
 
 /**
- * Низкоуровневый sampler — пишет samples в `admin_pulse_samples`.
+ * The low-level sampler — it writes the samples into `admin_pulse_samples`.
  *
- * Sample-rate (0..1) применяется в `shouldSample()` через mt_rand(); rate=1.0
- * пишет всё, rate=0.1 — 10%. Persistence inline (синхронно), но host-проект
- * может wrap'нуть в queued job для не-блокирующих вставок.
+ * The sample rate (0..1) is applied in `shouldSample()` through mt_rand();
+ * rate=1.0 writes everything, rate=0.1 writes 10%. The persistence is inline
+ * (synchronous), but a host project may wrap it into a queued job for
+ * non-blocking inserts.
  *
- * Используется PulseMiddleware'ом для request-метрики и host'ом
- * вручную для job/exception/cache-метрик через `record()`.
+ * It is used by PulseMiddleware for the request metrics and by the host by hand
+ * for the job/exception/cache metrics, through `record()`.
  */
 final class Sampler
 {
     /**
-     * Должен ли этот sample пройти отбор?
+     * Should this sample pass the selection?
      */
     public function shouldSample(string $kind): bool
     {
@@ -36,7 +37,7 @@ final class Sampler
     }
 
     /**
-     * Записать sample в БД.
+     * Write a sample into the database.
      *
      * @param  array<string, mixed>|null  $meta
      */
@@ -60,10 +61,10 @@ final class Sampler
     }
 
     /**
-     * Нормализованный SQL fingerprint — заменяет литералы на ?.
+     * The normalized SQL fingerprint — it replaces the literals with ?.
      *
-     * Простая версия: PCRE по quoted strings + numeric literals. Для
-     * production-grade нормализации нужен полноценный SQL-parser.
+     * A simple version: PCRE over the quoted strings and the numeric literals.
+     * Production-grade normalization would need a full SQL parser.
      */
     public function fingerprintSql(string $sql): string
     {
@@ -75,7 +76,7 @@ final class Sampler
     }
 
     /**
-     * Hash от exception-сигнатуры (class + message + first-stack-line).
+     * A hash of the exception's signature (class + message + first stack line).
      */
     public function fingerprintException(\Throwable $e): string
     {

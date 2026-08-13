@@ -12,11 +12,11 @@ use Illuminate\Support\Carbon;
 /**
  * `php artisan admin:pulse:rotate`
  *
- * Удаляет старые samples + aggregates по TTL'ам из config:
+ * Deletes the old samples and aggregates by the TTLs from the config:
  *   - admin-pulse.retention.samples_hours
  *   - admin-pulse.retention.aggregates_days
  *
- * Запускается в scheduler->daily.
+ * Run it from scheduler->daily.
  */
 final class RotateCommand extends Command
 {

@@ -10,16 +10,17 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Middleware-сэмплер request-метрики.
+ * The middleware that samples the request metrics.
  *
- * Хост подключает в config('admin.middleware.api') / .web либо в свой
+ * A host wires it into config('admin.middleware.api') / .web or into its own
  * RouteServiceProvider:
  *
  *     Route::middleware('pulse')->group(...);
  *
- * Игнорирует routes из `admin-pulse.ignore_routes` (чтобы не сэмплировать
- * сами себя и health-endpoint'ы). Persistence в terminate() — после ответа
- * клиенту; на работу request не влияет.
+ * It ignores the routes listed in `admin-pulse.ignore_routes` (so as not to
+ * sample itself and the health endpoints). The persistence happens in
+ * terminate(), after the response has gone to the client, and does not affect
+ * the request.
  */
 final class PulseMiddleware
 {
@@ -54,7 +55,7 @@ final class PulseMiddleware
     }
 
     /**
-     * Persistence в terminate() — не блокирует response.
+     * The persistence happens in terminate() and does not block the response.
      */
     public function terminate(Request $request, Response $response): void
     {

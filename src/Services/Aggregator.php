@@ -9,22 +9,22 @@ use Dskripchenko\LaravelAdminPulse\Models\PulseSample;
 use Illuminate\Support\Carbon;
 
 /**
- * Агрегирует samples в percentile-метрики.
+ * Aggregates the samples into percentile metrics.
  *
- * Bucket'ы:
- *   - 'route.percentiles' — p50/p95/p99/count для каждой связки route+method
- *     за period
- *   - 'top_slow_route' — топ-10 routes по p95 (separate row per route)
+ * The buckets:
+ *   - 'route.percentiles' — p50/p95/p99/count for every route+method pair over
+ *     the period
+ *   - 'top_slow_route' — the top 10 routes by p95 (a separate row per route)
  *
- * Period — окно [period_start, period_end). Caller (Aggregate command)
- * передаёт нужный диапазон (например последние 5 минут).
+ * The period is the window [period_start, period_end). The caller (the aggregate
+ * command) passes the range it needs (the last 5 minutes, for instance).
  */
 final class Aggregator
 {
     /**
-     * Запустить aggregation за окно [from, to).
+     * Run the aggregation over the window [from, to).
      *
-     * @return int Количество записанных aggregate-rows
+     * @return int The number of aggregate rows written
      */
     public function aggregate(Carbon $from, Carbon $to): int
     {
@@ -70,7 +70,7 @@ final class Aggregator
     }
 
     /**
-     * Linear-interpolation percentile (p ∈ [0, 1]) на отсортированном массиве.
+     * A linearly interpolated percentile (p ∈ [0, 1]) over a sorted array.
      *
      * @param  list<int>  $sorted
      */

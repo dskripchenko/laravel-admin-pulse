@@ -7,7 +7,8 @@ namespace Dskripchenko\LaravelAdminPulse\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Агрегированные метрики (p50/p95/p99 по route, top-slowest queries и т.п.).
+ * The aggregated metrics (p50/p95/p99 per route, the top slowest queries and
+ * so on).
  *
  * @property int $id
  * @property string $bucket 'route.p95' | 'top_slow_query' | ...

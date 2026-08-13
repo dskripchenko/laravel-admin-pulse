@@ -16,7 +16,7 @@ abstract class TestCase extends PackageTestCase
 
     protected function defineAdditionalEnvironment($app): void
     {
-        // sample_rate = 1.0 чтобы тесты детерминированно писали samples.
+        // sample_rate = 1.0 so that the tests write samples deterministically.
         $app['config']->set('admin-pulse.sample_rate.request', 1.0);
     }
 }

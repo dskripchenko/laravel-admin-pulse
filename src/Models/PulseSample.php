@@ -7,7 +7,7 @@ namespace Dskripchenko\LaravelAdminPulse\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Один sample телеметрии.
+ * A single telemetry sample.
  *
  * @property int $id
  * @property string $kind 'request' | 'query' | 'job' | 'exception' | 'cache'
