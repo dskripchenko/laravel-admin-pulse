@@ -33,6 +33,22 @@ final class PluginRegistrationTest extends TestCase
         $this->assertTrue($admin->getPermissionRegistry()->knows('admin.system.pulse.view'));
     }
 
+    public function test_version_comes_from_composer_metadata(): void
+    {
+        $version = (new AdminPulsePlugin)->version();
+
+        $this->assertNotSame('', $version);
+        $this->assertNotSame('0.1.0', $version);
+    }
+
+    public function test_english_translations_are_loaded(): void
+    {
+        app()->setLocale('en');
+
+        $this->assertSame('Telemetry samples', PulseSampleResource::label());
+        $this->assertSame('Telemetry: view', __('Телеметрия: просмотр'));
+    }
+
     public function test_aggregate_command_runs(): void
     {
         $this->artisan('admin:pulse:aggregate', ['--minutes' => 5])->assertSuccessful();

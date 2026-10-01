@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dskripchenko\LaravelAdminPulse;
 
+use Composer\InstalledVersions;
 use Dskripchenko\LaravelAdmin\Admin;
 use Dskripchenko\LaravelAdmin\Permission\ItemPermission;
 use Dskripchenko\LaravelAdmin\Plugin\AdminPlugin;
@@ -18,7 +19,7 @@ final class AdminPulsePlugin implements AdminPlugin
 
     public function version(): string
     {
-        return '0.1.0';
+        return InstalledVersions::getPrettyVersion('dskripchenko/laravel-admin-pulse') ?? 'dev';
     }
 
     public function register(): void {}
@@ -28,8 +29,8 @@ final class AdminPulsePlugin implements AdminPlugin
         $admin->resources([PulseSampleResource::class]);
 
         $admin->permissions(
-            ItemPermission::group('Системные')
-                ->addPermission('admin.system.pulse.view', 'Телеметрия: просмотр'),
+            ItemPermission::group(__('Системные'))
+                ->addPermission('admin.system.pulse.view', __('Телеметрия: просмотр')),
         );
     }
 }

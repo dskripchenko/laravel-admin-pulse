@@ -2,7 +2,11 @@
 
 > 🌐 **English** · [Русский](docs/ru/README.md) · [Deutsch](docs/de/README.md) · [中文](docs/zh/README.md)
 
-Lightweight telemetry: response-times, slow-queries, jobs throughput, top exceptions. Own implementation without laravel/pulse.
+Lightweight request telemetry for the admin panel: a `pulse` middleware samples
+request timings into the database, and the admin gets a **Telemetry samples**
+list with filters by kind, key and period. Console commands aggregate samples
+into per-route percentiles and rotate old data. Own implementation, no
+dependency on `laravel/pulse`.
 
 A sister-pack for [`dskripchenko/laravel-admin`](https://github.com/dskripchenko/laravel-admin).
 
@@ -20,7 +24,7 @@ The plugin auto-registers via Laravel package discovery. To publish the
 config:
 
 ```bash
-php artisan vendor:publish --tag=pulse-config
+php artisan vendor:publish --tag=admin-pulse-config
 ```
 
 ## Documentation

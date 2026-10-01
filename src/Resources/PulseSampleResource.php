@@ -37,7 +37,7 @@ final class PulseSampleResource extends Resource
 
     public static function label(): string
     {
-        return 'Pulse samples';
+        return __('Сэмплы телеметрии');
     }
 
     public function columns(): array
@@ -62,15 +62,15 @@ final class PulseSampleResource extends Resource
     public function filters(): array
     {
         return [
-            OptionsFilter::for('kind')->label('Тип')->options([
+            OptionsFilter::for('kind')->label(__('Тип'))->options([
                 'request' => 'Request',
                 'query' => 'Query',
                 'job' => 'Job',
                 'exception' => 'Exception',
                 'cache' => 'Cache',
             ]),
-            InputFilter::for('key')->label('Key (route / fingerprint)'),
-            DateRangeFilter::for('sampled_at')->label('Период'),
+            InputFilter::for('key')->label(__('Ключ (маршрут / отпечаток)')),
+            DateRangeFilter::for('sampled_at')->label(__('Период')),
         ];
     }
 
