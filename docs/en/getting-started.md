@@ -19,23 +19,37 @@ php artisan migrate
 ## Configure
 
 ```bash
-php artisan vendor:publish --tag=pulse-config
+php artisan vendor:publish --tag=admin-pulse-config
 ```
 
-Edit `config/pulse.php`.
+Edit `config/admin-pulse.php` (sample rates per kind, ignored routes,
+retention, SQL fingerprinting).
 
+## Wire the middleware
+
+The package registers a `pulse` middleware alias. Add it to the routes you
+want to measure:
+
+```php
+Route::middleware('pulse')->group(function () {
+    // ...
+});
+```
+
+The sample is written in `terminate()`, after the response has been sent.
 
 ## What it adds
 
-`/admin/dashboard/pulse` with widgets:
+- **Telemetry samples** resource in the admin (group "System"): a read-only
+  list of raw samples (`admin_pulse_samples`) with columns kind, key, label,
+  duration, status code and time, and filters by kind, key (route /
+  fingerprint) and period.
+- Permission `admin.system.pulse.view`.
+- Console commands `admin:pulse:aggregate` (per-route p50/p95/p99 into
+  `admin_pulse_aggregates`) and `admin:pulse:rotate` (retention cleanup).
 
-- Response times (avg, p50, p95, p99) per route
-- Slow queries (top N by avg duration)
-- Jobs throughput (per minute)
-- Top exceptions (count + last seen)
-
-Sampling runs in middleware; aggregates persist hourly via a scheduled
-command.
+The package does not ship dashboard widgets or charts; aggregates are stored
+for your own use.
 
 ## See also
 

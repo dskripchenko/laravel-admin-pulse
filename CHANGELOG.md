@@ -8,6 +8,21 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 Entries for releases published before this file existed were reconstructed from
 the tagged commit history.
 
+## [Unreleased]
+
+### Changed
+- The plugin version is now read from Composer metadata instead of a hardcoded value.
+- Requires `dskripchenko/laravel-admin` `^1.30`.
+- User-facing strings (resource label, filter labels, permission group and label) go through `__()`; an English translation ships in `resources/lang/en.json`.
+
+### Fixed
+- Documentation referenced a non-existent `pulse-config` publish tag; the tag is `admin-pulse-config`.
+- Documentation described dashboard widgets that the package does not provide; it now describes the samples list and the console commands that exist today.
+- Usage docs referenced wrong command names and config keys.
+
+### Added
+- Weekly scheduled CI run.
+
 ## [v1.3.0] - 2026-07-20
 
 ### Changed
