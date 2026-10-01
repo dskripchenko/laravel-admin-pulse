@@ -8,6 +8,25 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 Entries for releases published before this file existed were reconstructed from
 the tagged commit history.
 
+## [Unreleased]
+
+### Added
+- **Telemetry dashboard** (`/admin/dashboard/telemetry`, slug `telemetry`) with a menu entry in the "System" group, built from the core's widget types over the last 24 hours: KPI tiles (estimated requests, 5xx error rate, p95 response time, exceptions), requests and 5xx errors per minute and p50/p95 response time (multi-series line charts), slowest routes (samples, avg, exact p95, max, 5xx), slowest query fingerprints, top exceptions (samples, last seen) and processed/failed jobs (stacked bars).
+- The widget classes (`Dskripchenko\LaravelAdminPulse\Widgets\*`) can be placed on other dashboards; each checks `admin.system.pulse.view` itself and sends empty data without it.
+- Top-bar status indicator: warning or error when the share of 5xx responses among the requests sampled in the last 15 minutes crosses the configured thresholds; silent below a minimum number of samples and for users without the permission.
+- `Telemetry` service: the read side for the dashboard — bucketed time series from the aggregates, grouped queries over samples, exact percentiles computed by the database, results cached for `dashboard.cache_seconds`.
+- Aggregator buckets `requests` (all requests of a window: count, errors, p50/p95/p99, min/max/avg) and `jobs` (count, failed); `route.percentiles` rows also carry `errors`.
+- Config sections `dashboard` (`enabled`, `window_hours`, `buckets`, `top`, `cache_seconds`) and `indicator` (`enabled`, `window_minutes`, `min_requests`, `warning_error_rate`, `error_error_rate`).
+- Documentation of the dashboard and of the sample conventions (query, job and exception keys); Russian getting-started and usage pages.
+
+### Changed
+- Requires `dskripchenko/laravel-admin` `^1.33` (multi-series line and stacked bar charts).
+- Aggregating a window that was already aggregated replaces its rows instead of adding duplicates.
+
+### Fixed
+- The aggregation window is half-open, `[from, to)`, as documented: a sample exactly on the boundary was counted in two adjacent windows.
+- The usage docs described a `top_slow_route` bucket that was never written.
+
 ## [1.4.0] — 2026-10-01
 
 ### Changed

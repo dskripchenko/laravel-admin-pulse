@@ -7,20 +7,31 @@ namespace Dskripchenko\LaravelAdminPulse\Services;
 use Dskripchenko\LaravelAdminPulse\Models\PulseAggregate;
 use Dskripchenko\LaravelAdminPulse\Models\PulseSample;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Aggregates the samples into percentile metrics.
  *
- * The buckets:
- *   - 'route.percentiles' — p50/p95/p99/count for every route+method pair over
- *     the period
- *   - 'top_slow_route' — the top 10 routes by p95 (a separate row per route)
+ * The buckets, one set per window:
+ *   - 'route.percentiles' — count/errors/p50/p95/p99/min/max/avg for every
+ *     route+method pair (key = the route)
+ *   - 'requests' — the same metrics over every request of the window
+ *     (key = '*'); the telemetry dashboard draws its time series from it
+ *   - 'jobs' — the number of job samples and of failed ones (key = '*')
+ *
+ * A request is an error when its status code is 5xx; a job sample is a
+ * failure when it was recorded with a 5xx status code (see the usage docs).
  *
  * The period is the window [period_start, period_end). The caller (the aggregate
  * command) passes the range it needs (the last 5 minutes, for instance).
+ * Aggregating the same window again replaces its rows instead of adding a
+ * second copy, so a retried scheduler run does not double the charts.
  */
 final class Aggregator
 {
+    /** The buckets this class writes. */
+    public const BUCKETS = ['route.percentiles', 'requests', 'jobs'];
+
     /**
      * Run the aggregation over the window [from, to).
      *
@@ -29,44 +40,94 @@ final class Aggregator
     public function aggregate(Carbon $from, Carbon $to): int
     {
         $now = Carbon::now();
-        $written = 0;
+        $rows = [];
 
-        // Route percentiles per kind=request
-        $rows = PulseSample::query()
+        $requests = PulseSample::query()
             ->where('kind', 'request')
-            ->whereBetween('sampled_at', [$from, $to])
-            ->get(['key', 'duration_ms']);
+            ->where('sampled_at', '>=', $from)
+            ->where('sampled_at', '<', $to)
+            ->get(['key', 'duration_ms', 'status_code']);
 
         $byRoute = [];
-        foreach ($rows as $row) {
-            $byRoute[$row->key][] = (int) $row->duration_ms;
+        $errorsByRoute = [];
+        $all = [];
+        $allErrors = 0;
+        foreach ($requests as $row) {
+            $duration = (int) $row->duration_ms;
+            $isError = self::isError($row->status_code);
+            $byRoute[$row->key][] = $duration;
+            $errorsByRoute[$row->key] = ($errorsByRoute[$row->key] ?? 0) + ($isError ? 1 : 0);
+            $all[] = $duration;
+            $allErrors += $isError ? 1 : 0;
         }
 
         foreach ($byRoute as $route => $durations) {
-            sort($durations);
-            $count = count($durations);
-            $metrics = [
-                'count' => $count,
-                'p50' => $this->percentile($durations, 0.50),
-                'p95' => $this->percentile($durations, 0.95),
-                'p99' => $this->percentile($durations, 0.99),
-                'min' => $durations[0],
-                'max' => $durations[$count - 1],
-                'avg' => (int) (array_sum($durations) / $count),
-            ];
-
-            PulseAggregate::query()->create([
-                'bucket' => 'route.percentiles',
-                'key' => $route,
-                'metrics' => $metrics,
-                'period_start' => $from,
-                'period_end' => $to,
-                'aggregated_at' => $now,
-            ]);
-            $written++;
+            $rows[] = ['route.percentiles', (string) $route, $this->metrics($durations, $errorsByRoute[$route] ?? 0)];
         }
 
-        return $written;
+        if ($all !== []) {
+            $rows[] = ['requests', '*', $this->metrics($all, $allErrors)];
+        }
+
+        $jobs = PulseSample::query()
+            ->where('kind', 'job')
+            ->where('sampled_at', '>=', $from)
+            ->where('sampled_at', '<', $to)
+            ->selectRaw('COUNT(*) AS total, SUM(CASE WHEN status_code >= 500 THEN 1 ELSE 0 END) AS failed')
+            ->toBase()
+            ->first();
+
+        $jobTotal = (int) ($jobs->total ?? 0);
+        if ($jobTotal > 0) {
+            $rows[] = ['jobs', '*', ['count' => $jobTotal, 'failed' => (int) ($jobs->failed ?? 0)]];
+        }
+
+        DB::transaction(function () use ($rows, $from, $to, $now): void {
+            PulseAggregate::query()
+                ->whereIn('bucket', self::BUCKETS)
+                ->where('period_start', $from)
+                ->where('period_end', $to)
+                ->delete();
+
+            foreach ($rows as [$bucket, $key, $metrics]) {
+                PulseAggregate::query()->create([
+                    'bucket' => $bucket,
+                    'key' => $key,
+                    'metrics' => $metrics,
+                    'period_start' => $from,
+                    'period_end' => $to,
+                    'aggregated_at' => $now,
+                ]);
+            }
+        });
+
+        return count($rows);
+    }
+
+    /**
+     * @param  list<int>  $durations
+     * @return array<string, int>
+     */
+    private function metrics(array $durations, int $errors): array
+    {
+        sort($durations);
+        $count = count($durations);
+
+        return [
+            'count' => $count,
+            'errors' => $errors,
+            'p50' => $this->percentile($durations, 0.50),
+            'p95' => $this->percentile($durations, 0.95),
+            'p99' => $this->percentile($durations, 0.99),
+            'min' => $durations[0],
+            'max' => $durations[$count - 1],
+            'avg' => (int) (array_sum($durations) / $count),
+        ];
+    }
+
+    private static function isError(mixed $statusCode): bool
+    {
+        return $statusCode !== null && (int) $statusCode >= 500;
     }
 
     /**

@@ -40,16 +40,24 @@ The sample is written in `terminate()`, after the response has been sent.
 
 ## What it adds
 
-- **Telemetry samples** resource in the admin (group "System"): a read-only
-  list of raw samples (`admin_pulse_samples`) with columns kind, key, label,
-  duration, status code and time, and filters by kind, key (route /
-  fingerprint) and period.
-- Permission `admin.system.pulse.view`.
-- Console commands `admin:pulse:aggregate` (per-route p50/p95/p99 into
-  `admin_pulse_aggregates`) and `admin:pulse:rotate` (retention cleanup).
+- **Telemetry** dashboard (`/admin/dashboard/telemetry`, menu group "System"):
+  KPI tiles, request and job charts, and tables of the slowest routes, the
+  slowest queries and the most frequent exceptions over the last 24 hours.
+  See [Usage → Telemetry dashboard](usage.md#telemetry-dashboard).
+- A top-bar indicator that appears when the share of 5xx responses of the
+  last 15 minutes crosses a threshold.
+- **Telemetry samples** resource (group "System"): a read-only list of raw
+  samples (`admin_pulse_samples`) with columns kind, key, label, duration,
+  status code and time, and filters by kind, key (route / fingerprint) and
+  period.
+- Permission `admin.system.pulse.view` — it gates the dashboard, every widget,
+  the indicator and the samples list.
+- Console commands `admin:pulse:aggregate` (per-window aggregates into
+  `admin_pulse_aggregates`, which the charts are drawn from) and
+  `admin:pulse:rotate` (retention cleanup).
 
-The package does not ship dashboard widgets or charts; aggregates are stored
-for your own use.
+Schedule `admin:pulse:aggregate` every five minutes — without it the charts
+stay empty (the tables and tiles read raw samples and work regardless).
 
 ## See also
 
