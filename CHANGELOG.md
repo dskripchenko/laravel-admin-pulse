@@ -8,7 +8,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 Entries for releases published before this file existed were reconstructed from
 the tagged commit history.
 
-## [Unreleased]
+## [1.5.0] — 2026-10-02
 
 ### Added
 - **Telemetry dashboard** (`/admin/dashboard/telemetry`, slug `telemetry`) with a menu entry in the "System" group, built from the core's widget types over the last 24 hours: KPI tiles (estimated requests, 5xx error rate, p95 response time, exceptions), requests and 5xx errors per minute and p50/p95 response time (multi-series line charts), slowest routes (samples, avg, exact p95, max, 5xx), slowest query fingerprints, top exceptions (samples, last seen) and processed/failed jobs (stacked bars).
