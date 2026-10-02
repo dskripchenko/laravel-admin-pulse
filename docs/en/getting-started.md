@@ -36,7 +36,9 @@ Route::middleware('pulse')->group(function () {
 });
 ```
 
-The sample is written in `terminate()`, after the response has been sent.
+The sample is written after the response has been sent. Requests are keyed
+by method and route, with laravel-api's endpoint parameters filled in — see
+[Usage → Request samples](usage.md#request-samples).
 
 ## What it adds
 

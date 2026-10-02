@@ -44,6 +44,14 @@ final class SamplerTest extends TestCase
         $this->assertSame(['ip' => '1.2.3.4'], $row->meta);
     }
 
+    public function test_record_takes_the_moment_it_is_given(): void
+    {
+        (new Sampler)->record('job', 'App\\Jobs\\Import', 120, statusCode: 500, sampledAt: new \DateTimeImmutable('2026-01-02 03:04:05'));
+
+        $row = PulseSample::query()->sole();
+        $this->assertSame('2026-01-02 03:04:05', $row->sampled_at->format('Y-m-d H:i:s'));
+    }
+
     public function test_fingerprint_sql_strips_literals(): void
     {
         $sampler = new Sampler;

@@ -35,6 +35,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | The route parameters that name the endpoint
+    |--------------------------------------------------------------------------
+    | A request sample is keyed "METHOD uri" of its route. The values of these
+    | parameters are filled into the key — laravel-api's generic route
+    | `api/{version}/{controller}/{action}` becomes `api/admin/orders/search`.
+    | Any other parameter (a record id) stays a template.
+    */
+
+    'key_parameters' => ['version', 'controller', 'action'],
+
+    /*
+    |--------------------------------------------------------------------------
     | The TTL for the cleanup
     |--------------------------------------------------------------------------
     */
