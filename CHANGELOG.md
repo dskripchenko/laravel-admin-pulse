@@ -8,6 +8,34 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 Entries for releases published before this file existed were reconstructed from
 the tagged commit history.
 
+## [Unreleased]
+
+### Fixed
+- The middleware recorded no requests at all. It kept the start time on its
+  instance and wrote the sample in `terminate()`, but the kernel calls
+  `terminate()` on a fresh instance, which found no start time and returned;
+  and a middleware group run inside another pipeline — the admin API runs
+  `web` inside laravel-api's version pipeline — never gets `terminate()`
+  called. The sample is now written from an application `terminating`
+  callback registered in `handle()`.
+- Every admin API request had the same key, `POST api/{version}/{controller}/{action}`,
+  so the slowest-routes table had one row for the whole API. The values of the
+  parameters listed in the new `key_parameters` option (default `version`,
+  `controller`, `action`) are filled into the key: `POST api/admin/orders/search`.
+  Other parameters stay templates.
+- The `DB::listen` recipe in the usage guide recorded its own INSERT into
+  `admin_pulse_samples` as a query sample, which at a rate of 1.0 recursed
+  without end; it now skips the pack's tables. The Russian usage guide had a
+  stray English copy of its last sections.
+
+### Added
+- `admin:pulse:aggregate --hours=N` aggregates every full window of the last
+  N hours, catching up the windows missed while the scheduler was down and
+  samples imported after the fact. Repeating it is safe: a window aggregated
+  again replaces its rows.
+- `Sampler::record()` takes an optional `sampledAt` for samples recorded after
+  the fact (imports, backfills, seeders); it defaults to now.
+
 ## [1.5.2] — 2026-10-02
 
 ### Fixed

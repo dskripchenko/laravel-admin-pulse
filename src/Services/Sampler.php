@@ -39,6 +39,9 @@ final class Sampler
     /**
      * Write a sample into the database.
      *
+     * `$sampledAt` is when it happened, now by default; an import, a backfill
+     * or a seeder passes its own moment.
+     *
      * @param  array<string, mixed>|null  $meta
      */
     public function record(
@@ -48,6 +51,7 @@ final class Sampler
         ?string $label = null,
         ?int $statusCode = null,
         ?array $meta = null,
+        ?\DateTimeInterface $sampledAt = null,
     ): void {
         PulseSample::query()->create([
             'kind' => $kind,
@@ -56,7 +60,7 @@ final class Sampler
             'duration_ms' => $durationMs,
             'status_code' => $statusCode,
             'meta' => $meta,
-            'sampled_at' => Carbon::now(),
+            'sampled_at' => $sampledAt !== null ? Carbon::instance($sampledAt) : Carbon::now(),
         ]);
     }
 

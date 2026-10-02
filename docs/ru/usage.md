@@ -25,6 +25,12 @@ Schedule::command('admin:pulse:rotate')->daily();
 
 Запрос считается ошибкой, если код ответа 5xx. Повторная агрегация того же окна заменяет его строки, поэтому повторный запуск не удваивает цифры.
 
+`--hours=N` догоняет пропущенное: сворачивает каждое полное окно последних N часов, а не только последнее. Запускайте его после простоя планировщика или после импорта сэмплов:
+
+```bash
+php artisan admin:pulse:aggregate --hours=24
+```
+
 `admin:pulse:rotate` удаляет сэмплы и агрегаты старше заданных сроков хранения.
 
 ## Дашборд «Телеметрия»
@@ -109,6 +115,14 @@ public function widgets(): array
 
 Таблицы и плитки читают сырые сэмплы, поэтому при `window_hours` больше `retention.samples_hours` видно только то, что ещё хранится.
 
+## Сэмплы запросов
+
+Middleware `pulse` ключует запрос методом и маршрутом (`GET api/products/{product}`). Значения параметров из `key_parameters` подставляются в ключ, поэтому общий маршрут laravel-api `api/{version}/{controller}/{action}` даёт по ключу на эндпоинт (`POST api/admin/orders/search`), а не один на весь API; остальные параметры остаются шаблоном. Сэмпл пишется после отправки ответа из колбэка `terminating` приложения, поэтому работает и для группы, запущенной внутри другого конвейера (admin API).
+
+```php
+'key_parameters' => ['version', 'controller', 'action'],
+```
+
 ## Запись других типов
 
 Middleware пишет только сэмплы `request`. Запросы к БД, задания, исключения и кеш хост пишет сам через сервис `Sampler`. Дашборд ожидает такие ключи:
@@ -120,82 +134,6 @@ Middleware пишет только сэмплы `request`. Запросы к Б�
 | `exception` | `Sampler::fingerprintException($e)` | `ClassName: message` (выводится в таблице) | — |
 
 ```php
-use Dskripchenko\LaravelAdminPulse\Widgets\ErrorRateWidget;
-use Dskripchenko\LaravelAdminPulse\Widgets\ResponseTimeWidget;
-
-public function widgets(): array
-{
-    return [
-        ErrorRateWidget::make(),
-        ResponseTimeWidget::make()->size(12),
-    ];
-}
-```
-
-Each one checks `admin.system.pulse.view` itself and sends empty data to a
-user without it.
-
-## Top-bar indicator
-
-`PulseStatusIndicator` reports the share of 5xx responses among the sampled
-requests of the last `indicator.window_minutes`. Below `indicator.min_requests`
-samples, or below `indicator.warning_error_rate`, it is `ok` and the panel
-shows nothing; from `warning_error_rate` it is a warning, from
-`error_error_rate` an error. A click opens the telemetry dashboard. Users
-without `admin.system.pulse.view` never see it.
-
-## Configuration
-
-```php
-// config/admin-pulse.php
-'enabled' => env('ADMIN_PULSE_ENABLED', true),
-
-'sample_rate' => [
-    'request' => 0.1,   // 10%
-    'query' => 0.1,
-    'job' => 1.0,
-    'exception' => 1.0,
-    'cache' => 0.05,
-],
-
-'retention' => [
-    'samples_hours' => 24,
-    'aggregates_days' => 7,
-],
-
-'dashboard' => [
-    'enabled' => true,       // register the dashboard and its menu entry
-    'window_hours' => 24,
-    'buckets' => 24,
-    'top' => 10,             // rows per table
-    'cache_seconds' => 30,
-],
-
-'indicator' => [
-    'enabled' => true,
-    'window_minutes' => 15,
-    'min_requests' => 20,
-    'warning_error_rate' => 0.05,
-    'error_error_rate' => 0.20,
-],
-```
-
-The tables and tiles read raw samples, so a `window_hours` longer than
-`retention.samples_hours` only shows what is still kept.
-
-## Recording other kinds
-
-The middleware records `request` samples only. Queries, jobs, exceptions and
-cache samples are recorded by the host through the `Sampler` service. The
-dashboard expects these keys:
-
-| Kind | `key` | `label` | `status_code` |
-|---|---|---|---|
-| `query` | `Sampler::fingerprintSql($sql)` | — | — |
-| `job` | the job class | — | `500` for a failed job, anything below for a processed one |
-| `exception` | `Sampler::fingerprintException($e)` | `ClassName: message` (shown in the table) | — |
-
-```php
 use Dskripchenko\LaravelAdminPulse\Services\Sampler;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Queue\Events\JobFailed;
@@ -203,10 +141,15 @@ use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 
-// A service provider's boot()
+// boot() сервис-провайдера
 $sampler = app(Sampler::class);
 
 DB::listen(function (QueryExecuted $query) use ($sampler): void {
+    // Запись сэмпла — тоже запрос: таблицы пакета пропускаем, иначе каждый
+    // сэмпл пишет следующий (при rate 1.0 — без конца).
+    if (str_contains($query->sql, 'admin_pulse_')) {
+        return;
+    }
     if ($sampler->shouldSample('query')) {
         $sampler->record('query', mb_substr($sampler->fingerprintSql($query->sql), 0, 255), (int) $query->time);
     }
@@ -237,3 +180,5 @@ $exceptions->report(function (Throwable $e): void {
     }
 });
 ```
+
+`record()` принимает необязательный `sampledAt` (любой `DateTimeInterface`, по умолчанию — сейчас) для сэмплов, записанных задним числом: импорт, дозаполнение, сидер. После них сверните окна командой `admin:pulse:aggregate --hours=N`.

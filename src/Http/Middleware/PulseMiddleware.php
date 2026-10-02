@@ -6,7 +6,9 @@ namespace Dskripchenko\LaravelAdminPulse\Http\Middleware;
 
 use Closure;
 use Dskripchenko\LaravelAdminPulse\Services\Sampler;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -18,70 +20,53 @@ use Symfony\Component\HttpFoundation\Response;
  *     Route::middleware('pulse')->group(...);
  *
  * It ignores the routes listed in `admin-pulse.ignore_routes` (so as not to
- * sample itself and the health endpoints). The persistence happens in
- * terminate(), after the response has gone to the client, and does not affect
- * the request.
+ * sample itself and the health endpoints).
+ *
+ * The sample is written from an application `terminating` callback that
+ * handle() registers, after the response has gone to the client. Not from the
+ * middleware's own terminate(): the kernel calls that on a fresh instance of
+ * the middleware, which knows nothing of the start time, and only for the
+ * middleware of the matched route — a group run inside another pipeline (the
+ * admin API runs `web` inside laravel-api's version pipeline) never gets it.
  */
 final class PulseMiddleware
 {
-    /** @var array<string, float> [route_path => start_time_µs] */
-    private array $startTimes = [];
-
-    public function __construct(private readonly Sampler $sampler) {}
+    public function __construct(
+        private readonly Sampler $sampler,
+        private readonly Application $app,
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (! (bool) config('admin-pulse.enabled', true)) {
+        if (! (bool) config('admin-pulse.enabled', true) || $this->isIgnored($request)) {
             /** @var Response $response */
             $response = $next($request);
 
             return $response;
         }
 
-        if ($this->isIgnored($request)) {
-            /** @var Response $response */
-            $response = $next($request);
-
-            return $response;
-        }
-
-        $key = $this->buildKey($request);
-        $this->startTimes[$key] = microtime(true);
+        $start = microtime(true);
 
         /** @var Response $response */
         $response = $next($request);
 
+        $this->app->terminating(function () use ($request, $response, $start): void {
+            $this->record($request, $response, $start);
+        });
+
         return $response;
     }
 
-    /**
-     * The persistence happens in terminate() and does not block the response.
-     */
-    public function terminate(Request $request, Response $response): void
+    private function record(Request $request, Response $response, float $start): void
     {
-        if (! (bool) config('admin-pulse.enabled', true)) {
-            return;
-        }
-
-        if ($this->isIgnored($request)) {
-            return;
-        }
-
         if (! $this->sampler->shouldSample('request')) {
             return;
         }
 
-        $key = $this->buildKey($request);
-        $start = $this->startTimes[$key] ?? null;
-        if ($start === null) {
-            return;
-        }
-
-        $durationMs = (int) ((microtime(true) - $start) * 1000);
         $this->sampler->record(
             kind: 'request',
-            key: $key,
-            durationMs: $durationMs,
+            key: $this->buildKey($request),
+            durationMs: (int) ((microtime(true) - $start) * 1000),
             label: $request->method(),
             statusCode: $response->getStatusCode(),
             meta: [
@@ -106,13 +91,34 @@ final class PulseMiddleware
         return false;
     }
 
+    /**
+     * "METHOD uri" of the matched route, with the parameters that name the
+     * endpoint (`admin-pulse.key_parameters`) filled in. A generic route such
+     * as laravel-api's `api/{version}/{controller}/{action}` would otherwise
+     * put the whole API under one key; a record parameter (`{product}`) stays
+     * a template, so the key does not grow with the number of records.
+     */
     private function buildKey(Request $request): string
     {
         $route = $request->route();
-        if ($route instanceof \Illuminate\Routing\Route) {
-            return $request->method().' '.$route->uri();
+        if (! $route instanceof Route) {
+            return $request->method().' '.$request->path();
         }
 
-        return $request->method().' '.$request->path();
+        $uri = $route->uri();
+        /** @var array<int, mixed> $names */
+        $names = (array) config('admin-pulse.key_parameters', ['version', 'controller', 'action']);
+        foreach ($names as $name) {
+            if (! is_string($name) || ! $route->hasParameter($name)) {
+                continue;
+            }
+            $value = $route->parameter($name);
+            if (! is_scalar($value) || (string) $value === '') {
+                continue;
+            }
+            $uri = preg_replace('/\{'.preg_quote($name, '/').'\??\}/', (string) $value, $uri) ?? $uri;
+        }
+
+        return $request->method().' '.$uri;
     }
 }

@@ -26,6 +26,14 @@ into `admin_pulse_aggregates`:
 A request is an error when its status code is 5xx. Aggregating the same window
 again replaces its rows, so a retried run does not double the numbers.
 
+`--hours=N` catches up: it aggregates every full window of the last N hours,
+not only the last one. Run it after the scheduler has been down, or after
+importing samples:
+
+```bash
+php artisan admin:pulse:aggregate --hours=24
+```
+
 `admin:pulse:rotate` deletes samples and aggregates older than the configured
 retention.
 
@@ -129,6 +137,21 @@ without `admin.system.pulse.view` never see it.
 The tables and tiles read raw samples, so a `window_hours` longer than
 `retention.samples_hours` only shows what is still kept.
 
+## Request samples
+
+The `pulse` middleware keys a request by its method and route
+(`GET api/products/{product}`). The values of the parameters listed in
+`key_parameters` are filled in, so laravel-api's generic route
+`api/{version}/{controller}/{action}` gives one key per endpoint
+(`POST api/admin/orders/search`) rather than one for the whole API; any other
+parameter stays a template. The sample is written after the response has been
+sent, from an application `terminating` callback, so it works for a group run
+inside another pipeline too (the admin API).
+
+```php
+'key_parameters' => ['version', 'controller', 'action'],
+```
+
 ## Recording other kinds
 
 The middleware records `request` samples only. Queries, jobs, exceptions and
@@ -153,6 +176,11 @@ use Illuminate\Support\Facades\Event;
 $sampler = app(Sampler::class);
 
 DB::listen(function (QueryExecuted $query) use ($sampler): void {
+    // Recording a sample is a query too: skip the pack's own tables, or every
+    // sample records another one (without end at a rate of 1.0).
+    if (str_contains($query->sql, 'admin_pulse_')) {
+        return;
+    }
     if ($sampler->shouldSample('query')) {
         $sampler->record('query', mb_substr($sampler->fingerprintSql($query->sql), 0, 255), (int) $query->time);
     }
@@ -183,3 +211,7 @@ $exceptions->report(function (Throwable $e): void {
     }
 });
 ```
+
+`record()` takes an optional `sampledAt` (any `DateTimeInterface`, now by
+default) for samples recorded after the fact — an import, a backfill, a
+seeder. Aggregate them afterwards with `admin:pulse:aggregate --hours=N`.
