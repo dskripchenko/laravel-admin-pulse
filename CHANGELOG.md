@@ -8,6 +8,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 Entries for releases published before this file existed were reconstructed from
 the tagged commit history.
 
+## [Unreleased]
+
+### Fixed
+- The telemetry samples table had headers made from the column names
+  ("Duration ms", "Status code", "Sampled at") and English kind captions
+  ("Request", "Query"…), English in a Russian panel. Every column now has a
+  label and the kinds are source strings, translated per request; the kind
+  badges show the same captions as the filter.
+
 ## [1.5.1] — 2026-10-02
 
 ### Fixed

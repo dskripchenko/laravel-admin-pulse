@@ -43,34 +43,47 @@ final class PulseSampleResource extends Resource
     public function columns(): array
     {
         return [
-            TableColumn::make('id')->sort()->width('60px'),
-            TableColumn::make('kind')->sort()->asBadge([
+            // Every column carries a label: one made from the column name
+            // stays English in every panel language.
+            TableColumn::make('id')->label(__('ID'))->sort()->width('60px'),
+            TableColumn::make('kind')->label(__('Тип'))->sort()->asBadge([
                 'request' => 'info',
                 'query' => 'default',
                 'job' => 'success',
                 'exception' => 'danger',
                 'cache' => 'warning',
-            ]),
-            TableColumn::make('key')->search()->copyable(),
-            TableColumn::make('label')->search(),
-            TableColumn::make('duration_ms')->sort()->align('right'),
-            TableColumn::make('status_code')->sort()->align('right'),
-            TableColumn::make('sampled_at')->sort()->asDateTime(),
+            ], self::kinds()),
+            TableColumn::make('key')->label(__('Ключ'))->search()->copyable(),
+            TableColumn::make('label')->label(__('Подпись'))->search(),
+            TableColumn::make('duration_ms')->label(__('Длительность, мс'))->sort()->align('right'),
+            TableColumn::make('status_code')->label(__('Код ответа'))->sort()->align('right'),
+            TableColumn::make('sampled_at')->label(__('Время'))->sort()->asDateTime(),
         ];
     }
 
     public function filters(): array
     {
         return [
-            OptionsFilter::for('kind')->label(__('Тип'))->options([
-                'request' => 'Request',
-                'query' => 'Query',
-                'job' => 'Job',
-                'exception' => 'Exception',
-                'cache' => 'Cache',
-            ]),
+            OptionsFilter::for('kind')->label(__('Тип'))->options(self::kinds()),
             InputFilter::for('key')->label(__('Ключ (маршрут / отпечаток)')),
             DateRangeFilter::for('sampled_at')->label(__('Период')),
+        ];
+    }
+
+    /**
+     * The sample kinds and their captions — source strings, translated per
+     * request by core.
+     *
+     * @return array<string, string>
+     */
+    private static function kinds(): array
+    {
+        return [
+            'request' => 'HTTP-запрос',
+            'query' => 'SQL-запрос',
+            'job' => 'Задача',
+            'exception' => 'Исключение',
+            'cache' => 'Кэш',
         ];
     }
 
