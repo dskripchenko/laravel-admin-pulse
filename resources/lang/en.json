@@ -45,5 +45,6 @@
     "Тип": "Type",
     "Упало": "Failed",
     "Частые исключения": "Top exceptions",
-    "мс": "ms"
+    "мс": "ms",
+    "сэмпл телеметрии": "telemetry sample"
 }

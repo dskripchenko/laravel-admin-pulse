@@ -40,6 +40,15 @@ final class PulseSampleResource extends Resource
         return __('Сэмплы телеметрии');
     }
 
+    /**
+     * One record's name, for the panel's titles, confirmations and toasts
+     * ("Create telemetry sample"). A core without singularLabel() ignores it.
+     */
+    public static function singularLabel(): string
+    {
+        return __('сэмпл телеметрии');
+    }
+
     public function columns(): array
     {
         return [
