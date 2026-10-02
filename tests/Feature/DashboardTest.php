@@ -138,9 +138,10 @@ final class DashboardTest extends TestCase
 
         $this->actingAsAdmin(permissions: ['admin.users.view']);
 
+        // Core leaves a dashboard the user may not open out of the manifest
+        // altogether; on older cores it came with no widgets.
         $dashboard = $this->telemetryDashboard();
-        $this->assertNotNull($dashboard);
-        $this->assertSame([], $dashboard['widgets']);
+        $this->assertSame([], $dashboard['widgets'] ?? []);
     }
 
     public function test_widget_placed_elsewhere_sends_nothing_without_the_permission(): void

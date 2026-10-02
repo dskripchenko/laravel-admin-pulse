@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dskripchenko\LaravelAdminPulse\Tests\Feature;
 
 use Dskripchenko\LaravelAdmin\Admin;
+use Dskripchenko\LaravelAdmin\Testing\Concerns\ActsAsAdmin;
 use Dskripchenko\LaravelAdminPulse\AdminPulsePlugin;
 use Dskripchenko\LaravelAdminPulse\Models\PulseAggregate;
 use Dskripchenko\LaravelAdminPulse\Models\PulseSample;
@@ -14,6 +15,8 @@ use Illuminate\Support\Carbon;
 
 final class PluginRegistrationTest extends TestCase
 {
+    use ActsAsAdmin;
+
     public function test_plugin_in_admin_plugins_config(): void
     {
         $this->assertContains(AdminPulsePlugin::class, (array) config('admin.plugins', []));
@@ -31,6 +34,39 @@ final class PluginRegistrationTest extends TestCase
         /** @var Admin $admin */
         $admin = app(Admin::class);
         $this->assertTrue($admin->getPermissionRegistry()->knows('admin.system.pulse.view'));
+    }
+
+    public function test_permission_group_follows_the_request_locale(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        foreach (['ru' => ['Системные', 'Телеметрия: просмотр'], 'en' => ['System', 'Telemetry: view']] as $locale => [$group, $label]) {
+            $groups = $this->withHeader('Accept-Language', $locale)
+                ->getJson('/api/admin/system/permissions')
+                ->assertOk()
+                ->json('payload.groups');
+
+            $pulse = collect($groups)->first(
+                static fn (array $g): bool => collect($g['items'])->contains('key', 'admin.system.pulse.view'),
+            );
+            $this->assertSame($group, $pulse['name'] ?? null, $locale);
+            $this->assertSame($label, collect($pulse['items'])->firstWhere('key', 'admin.system.pulse.view')['label'] ?? null, $locale);
+        }
+    }
+
+    public function test_menu_entry_shares_the_group_of_the_samples_list(): void
+    {
+        $this->actingAsSuperAdmin();
+
+        foreach (['ru' => 'Системные', 'en' => 'System'] as $locale => $group) {
+            $items = collect($this->withHeader('Accept-Language', $locale)
+                ->getJson('/api/admin/system/menu')
+                ->assertOk()
+                ->json('payload.items'));
+
+            $this->assertSame($group, $items->firstWhere('key', 'dashboard.telemetry')['group'] ?? null, $locale);
+            $this->assertSame($group, $items->firstWhere('key', 'system-pulse-samples')['group'] ?? null, $locale);
+        }
     }
 
     public function test_version_comes_from_composer_metadata(): void
