@@ -8,6 +8,19 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 Entries for releases published before this file existed were reconstructed from
 the tagged commit history.
 
+## [Unreleased]
+
+### Fixed
+- The permission group was registered as `__('Системные')`, translated once at
+  boot: the role matrix showed it in the boot locale whatever the request's
+  language, and apart from the "Системные" group of the other packs when those
+  register the source string. The group and its label are now passed as source
+  strings, which core translates per request. The telemetry menu entry takes
+  its group from `PulseSampleResource::$group`, so the dashboard and the
+  samples list always share one sidebar group.
+- A test still expected a dashboard the user may not open to be in the
+  manifest with no widgets; core leaves it out altogether.
+
 ## [1.5.0] — 2026-10-02
 
 ### Added

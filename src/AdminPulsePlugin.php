@@ -40,7 +40,7 @@ final class AdminPulsePlugin implements AdminPlugin
             // from the screen's name(), translated per request.
             $admin->menu()->add(
                 MenuNode::dashboard(TelemetryDashboardScreen::slug())
-                    ->group('Системные')
+                    ->group(PulseSampleResource::$group)
                     ->icon('activity')
                     ->permissions(PulseAccess::PERMISSION),
             );
@@ -50,9 +50,13 @@ final class AdminPulsePlugin implements AdminPlugin
             $admin->statusIndicators([PulseStatusIndicator::class]);
         }
 
+        // Source strings, not __() results: the group is registered once at
+        // boot, and core translates it in the locale of each request. A name
+        // translated here would be frozen in the boot locale and split from
+        // the "Системные" group of the other packs.
         $admin->permissions(
-            ItemPermission::group(__('Системные'))
-                ->addPermission(PulseAccess::PERMISSION, __('Телеметрия: просмотр')),
+            ItemPermission::group('Системные')
+                ->addPermission(PulseAccess::PERMISSION, 'Телеметрия: просмотр'),
         );
     }
 }
